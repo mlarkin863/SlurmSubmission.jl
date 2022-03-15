@@ -72,4 +72,13 @@ function submit_script(options::Options)
     run(`rm $(options.script_name)`)
 end
 
+function submit_scripts(options, parameter_files; dry_run=false)
+    @info "Submitting $(length(parameter_files)) jobs."
+    for file in parameter_files
+        write_script(options, file)
+        dry_run ? @info("Script written but not submitted.") : submit_script(options)
+    end
+    @info "Success!"
+end
+
 end
