@@ -1,0 +1,7 @@
+name = "SlurmSubmission"
+uuid = "369b147d-0ff1-469c-a749-0d8696e5fc26"
+authors = ["James Gardner <james.gardner1421@gmail.com> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1.7"
