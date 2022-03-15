@@ -7,9 +7,12 @@ struct ClusterInfo
     partition::String
 end
 
+
+get_default_account() = read(`sacctmgr show user $USER format=DefaultAccount -nP`, String)
+
 const SulisCluster = ClusterInfo(128, 3850, "su007-rjm", "compute")
-const AvonCluster = ClusterInfo(48, 3700, "", "compute")
-const OracCluster = ClusterInfo(28, 4571, "", "cnode")
+const AvonCluster = ClusterInfo(48, 3700, "chemistryrjm", "compute")
+const OracCluster = ClusterInfo(28, 4571, "chemistryrjm", "cnode")
 
 function ClusterInfo() 
     machine = read(`hostname`, String)
@@ -35,13 +38,12 @@ function Options(julia_script; kwargs...)
     Options("submit.sh", sbatch_options, julia_script)
 end
 
-function get_sbatch_options(;time::String, nodes::Int, partition=nothing)
+function get_sbatch_options(;time::String, nodes::Int, partition=nothing, account=nothing)
 
     cluster = ClusterInfo()
 
-    if partition === nothing
-        partition = cluster.partition
-    end
+    (partition === nothing) && (partition = cluster.partition)
+    (account === nothing) && (account = cluster.account)
 
     return [
         "--time=$time"
@@ -49,7 +51,7 @@ function get_sbatch_options(;time::String, nodes::Int, partition=nothing)
         "--ntasks-per-node=$(cluster.cores_per_node)"
         "--cpus-per-task=1"
         "--mem-per-cpu=$(cluster.mem_per_cpu)"
-        "--account=$(cluster.account)"
+        "--account=$(account)"
         "--partition=$(partition)"
     ]
 end
