@@ -38,8 +38,9 @@ function Options(julia_script; kwargs...)
     Options("submit.sh", sbatch_options, julia_script)
 end
 
-function get_sbatch_options(;time::String, nodes::Int,
-    partition=nothing, account=nothing, ntasks_per_node=nothing
+function get_sbatch_options(;time::String, nodes=nothing,
+    partition=nothing, account=nothing, ntasks_per_node=nothing,
+    total_tasks=nothing
 )
 
     cluster = ClusterInfo()
@@ -47,6 +48,15 @@ function get_sbatch_options(;time::String, nodes::Int,
     (partition === nothing) && (partition = cluster.partition)
     (account === nothing) && (account = cluster.account)
     (ntasks_per_node === nothing) && (ntasks_per_node = cluster.ntasks_per_node)
+
+    if !(total_tasks === nothing)
+        @info "Using `total_tasks` to determine number of nodes and tasks per node."
+        nodes = (total_tasks-1) ÷ cluster.ntasks_per_node + 1
+        ntasks_per_node = Int(total_tasks / nodes)
+        @info "Parameters" total_tasks nodes ntasks_per_node
+    elseif (nodes === nothing)
+        throw(error("You must specify either `nodes` or `total_tasks`."))
+    end
 
     return [
         "--time=$time"
