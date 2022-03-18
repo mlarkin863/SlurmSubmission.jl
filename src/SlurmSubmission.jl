@@ -1,7 +1,7 @@
 module SlurmSubmission
 
 struct ClusterInfo
-    cores_per_node::Int
+    ntasks_per_node::Int
     mem_per_cpu::Int
     account::String
     partition::String
@@ -38,17 +38,20 @@ function Options(julia_script; kwargs...)
     Options("submit.sh", sbatch_options, julia_script)
 end
 
-function get_sbatch_options(;time::String, nodes::Int, partition=nothing, account=nothing)
+function get_sbatch_options(;time::String, nodes::Int,
+    partition=nothing, account=nothing, ntasks_per_node=nothing
+)
 
     cluster = ClusterInfo()
 
     (partition === nothing) && (partition = cluster.partition)
     (account === nothing) && (account = cluster.account)
+    (ntasks_per_node === nothing) && (ntasks_per_node = cluster.ntasks_per_node)
 
     return [
         "--time=$time"
         "--nodes=$nodes"
-        "--ntasks-per-node=$(cluster.cores_per_node)"
+        "--ntasks-per-node=$ntasks_per_node"
         "--cpus-per-task=1"
         "--mem-per-cpu=$(cluster.mem_per_cpu)"
         "--account=$(account)"
