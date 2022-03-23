@@ -46,7 +46,7 @@ end
 
 function get_sbatch_options(;time::String, nodes=nothing,
     partition=nothing, account=nothing, ntasks_per_node=nothing,
-    total_tasks=nothing
+    total_tasks=nothing, job_name="sbatch",
 )
 
     cluster = ClusterInfo()
@@ -69,8 +69,9 @@ function get_sbatch_options(;time::String, nodes=nothing,
         "--nodes=$nodes"
         "--ntasks-per-node=$ntasks_per_node"
         "--cpus-per-task=1"
-        "--account=$(account)"
-        "--partition=$(partition)"
+        "--account=$account"
+        "--partition=$partition"
+        "--job-name=$job_name"
     ]
 
     if cluster === ArcherCluster
