@@ -7,21 +7,27 @@ struct ClusterInfo
     partition::String
 end
 
-
 get_default_account() = read(`sacctmgr show user $USER format=DefaultAccount -nP`, String)
 
 const SulisCluster = ClusterInfo(128, 3850, "su007-rjm", "compute")
 const AvonCluster = ClusterInfo(48, 3700, "chemistryrjm", "compute")
 const OracCluster = ClusterInfo(28, 4571, "chemistryrjm", "cnode")
+const ArcherCluster = ClusterInfo(128, 4096, "E635", "standard")
 
 function ClusterInfo() 
     machine = read(`hostname`, String)
-    if machine == "login01.sulis.hpc\n"
+    if occursin("sulis", machine)
+        @info "Cluster identified as Sulis"
         return SulisCluster
-    elseif machine == "login01.avon.hpc\n"
+    elseif occursin("avon", machine)
+        @info "Cluster identified as Avon"
         return AvonCluster
-    elseif machine == "login1.orac.cluster\n"
+    elseif occursin("orac", machine)
+        @info "Cluster identified as Orac"
         return OracCluster
+    elseif occursin("ln", machine)
+        @info "Cluster identified as Archer"
+        return ArcherCluster
     else
         throw(error("Cluster not recognised."))
     end
@@ -58,7 +64,7 @@ function get_sbatch_options(;time::String, nodes=nothing,
         throw(error("You must specify either `nodes` or `total_tasks`."))
     end
 
-    return [
+    options =  [
         "--time=$time"
         "--nodes=$nodes"
         "--ntasks-per-node=$ntasks_per_node"
@@ -67,6 +73,12 @@ function get_sbatch_options(;time::String, nodes=nothing,
         "--account=$(account)"
         "--partition=$(partition)"
     ]
+
+    if cluster === ArcherCluster
+        push!(options, "--qos=standard")
+    end
+
+    return options
 end
 
 function write_script(options::Options, parameter_file)
@@ -75,6 +87,7 @@ function write_script(options::Options, parameter_file)
         for line in options.sbatch_options
             println(io, "#SBATCH $line")
         end
+        println(io, "export JULIA_DEPOT_PATH=\"$(DEPOT_PATH[1])\"")
         julia_path = joinpath(Sys.BINDIR, "julia")
         println(io, join([julia_path, options.julia_script, parameter_file], " "))
     end
