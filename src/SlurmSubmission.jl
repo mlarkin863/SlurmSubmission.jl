@@ -12,7 +12,7 @@ get_default_account() = read(`sacctmgr show user $USER format=DefaultAccount -nP
 const SulisCluster = ClusterInfo(128, 3850, "su007-rjm", "compute")
 const AvonCluster = ClusterInfo(48, 3700, "chemistryrjm", "compute")
 const OracCluster = ClusterInfo(28, 4571, "chemistryrjm", "cnode")
-const ArcherCluster = ClusterInfo(128, 4096, "E635", "standard")
+const ArcherCluster = ClusterInfo(128, 0, "E635", "standard")
 
 function ClusterInfo() 
     machine = read(`hostname`, String)
@@ -69,13 +69,14 @@ function get_sbatch_options(;time::String, nodes=nothing,
         "--nodes=$nodes"
         "--ntasks-per-node=$ntasks_per_node"
         "--cpus-per-task=1"
-        "--mem-per-cpu=$(cluster.mem_per_cpu)"
         "--account=$(account)"
         "--partition=$(partition)"
     ]
 
     if cluster === ArcherCluster
         push!(options, "--qos=standard")
+    else
+        push!(options, "--mem-per-cpu=$(cluster.mem_per_cpu)")
     end
 
     return options
