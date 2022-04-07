@@ -42,6 +42,14 @@ const ArcherCluster = ClusterInfo("archer",
         :qos=>"standard"
     )
 )
+const TaskFarmCluster = ClusterInfo("taskfarm",
+    Dict{Symbol,Any}(
+        :ntasks_per_node=>48,
+        :mem_per_cpu=>4000,
+        :partition=>"taskfarm",
+        :cpus_per_task=>1
+    )
+)
 
 function ClusterInfo() 
     machine = read(`hostname`, String)
@@ -53,6 +61,8 @@ function ClusterInfo()
         return OracCluster
     elseif occursin("ln", machine)
         return ArcherCluster
+    elseif occursin("godzilla", machine)
+        return TaskFarmCluster
     else
         throw(error("Cluster not recognised."))
     end
