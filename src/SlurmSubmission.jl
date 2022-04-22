@@ -15,36 +15,49 @@ struct Options
     cluster::ClusterInfo
     sbatch_options::Dict{Symbol,Any}
     mode::Symbol
+    extra::String
 end
 
 function Base.show(io::IO, options::Options)
     buffer = IOBuffer()
     print_sbatch_info(buffer, options)
-    sbatchstring = String(take!(buffer))
+    sbatchstring = chomp(String(take!(buffer)))
 
     sbatch_panel = Panel(
+        subtitle="[bold cyan]Cluster: [green italic]`$(options.cluster.name)`",
+        subtitle_justify=:right,
         sbatchstring;
         style="bold cyan",
         fit=true,
     )
-    options_panel = Panel(
-        Spacer(1,1),
-        RenderableText("[bold cyan]Cluster: [green italic]`$(options.cluster.name)`"),
-        Spacer(1,1),
-        sbatch_panel,
-        title="Submission options",
-        style="gold1 bold",
+
+    buffer = IOBuffer()
+    print_extra(buffer, options)
+    extrastring = chomp(String(take!(buffer)))
+
+    extra_panel = Panel(
+        extrastring;
+        title="Additional info",
+        style="bold green",
         fit=true
     )
+
+    options_panel = Panel(
+        sbatch_panel * extra_panel,
+        title="Submission options",
+        style="bold gold1",
+        fit=true
+    )
+
     print(io,
         options_panel
     )
 end
 
-function DistributedOptions(;kwargs...)
+function DistributedOptions(extra=""; kwargs...)
     cluster = ClusterInfo()
     sbatch_options = generate_sbatch_options(cluster, kwargs)
-    options = Options(cluster, sbatch_options, :Distributed)
+    options = Options(cluster, sbatch_options, :Distributed, extra)
     print(options)
     return options
 end
@@ -55,7 +68,7 @@ function SplitThreadsOptions(;kwargs...)
     sbatch_options[:cpus_per_task] = sbatch_options[:ntasks_per_node]
     sbatch_options[:ntasks_per_node] = 1
 
-    options = Options(cluster, sbatch_options, :SplitThreads)
+    options = Options(cluster, sbatch_options, :SplitThreads, extra)
     print(options)
     return options
 end
@@ -77,12 +90,17 @@ function print_sbatch_info(io, options::Options)
     end
 end
 
+function print_extra(io, options::Options)
+    println(io, "export JULIA_DEPOT_PATH=\"$(DEPOT_PATH[1])\"")
+    println(io, "export OMP_NUM_THREADS=1")
+    println(io, options.extra)
+end
+
 function write_script(options::Options, args...)
     open("sh.sh", "w") do io
         println(io, "#!/bin/bash")
         print_sbatch_info(io, options)
-        println(io, "export JULIA_DEPOT_PATH=\"$(DEPOT_PATH[1])\"")
-        println(io, "export OMP_NUM_THREADS=1")
+        print_extra(io, options)
         print_julia_command(io, options, args...)
     end
 end
@@ -93,7 +111,6 @@ function print_julia_command(io, options::Options, args...)
     elseif options.mode == :SplitThreads
         processes = options.sbatch_options[:nodes]
     end
-    threads = options.sbatch_options[:cpus_per_task]
     julia_path = joinpath(Sys.BINDIR, "julia")
     join(io, [julia_path, args...], " ")
 end
