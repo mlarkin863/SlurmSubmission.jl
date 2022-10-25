@@ -2,6 +2,7 @@ module SlurmSubmission
 
 export DistributedOptions
 export SplitThreadsOptions
+export SerialOptions
 
 export write_script
 export submit_script
@@ -14,7 +15,6 @@ include("clusters.jl")
 struct Options
     cluster::ClusterInfo
     sbatch_options::Dict{Symbol,Any}
-    mode::Symbol
     extra::String
 end
 
@@ -24,7 +24,7 @@ function Base.show(io::IO, options::Options)
     sbatchstring = chomp(String(take!(buffer)))
 
     sbatch_panel = Panel(
-        subtitle="[bold cyan]Cluster: [green italic]`$(options.cluster.name)`",
+        subtitle="{bold cyan}Cluster: {green italic}`$(options.cluster.name)`",
         subtitle_justify=:right,
         sbatchstring;
         style="bold cyan",
@@ -57,7 +57,18 @@ end
 function DistributedOptions(extra=""; kwargs...)
     cluster = ClusterInfo()
     sbatch_options = generate_sbatch_options(cluster, kwargs)
-    options = Options(cluster, sbatch_options, :Distributed, extra)
+    options = Options(cluster, sbatch_options, extra)
+    print(options)
+    return options
+end
+
+function SerialOptions(extra=""; kwargs...)
+    cluster = ClusterInfo()
+    sbatch_options = generate_sbatch_options(cluster, kwargs)
+    sbatch_options[:cpus_per_task] = 1
+    sbatch_options[:ntasks_per_node] = 1
+
+    options = Options(cluster, sbatch_options, extra)
     print(options)
     return options
 end
@@ -68,7 +79,7 @@ function SplitThreadsOptions(;kwargs...)
     sbatch_options[:cpus_per_task] = sbatch_options[:ntasks_per_node]
     sbatch_options[:ntasks_per_node] = 1
 
-    options = Options(cluster, sbatch_options, :SplitThreads, extra)
+    options = Options(cluster, sbatch_options, extra)
     print(options)
     return options
 end
@@ -101,16 +112,11 @@ function write_script(options::Options, args...)
         println(io, "#!/bin/bash")
         print_sbatch_info(io, options)
         print_extra(io, options)
-        print_julia_command(io, options, args...)
+        print_julia_command(io, args...)
     end
 end
 
-function print_julia_command(io, options::Options, args...)
-    if options.mode == :Distributed
-        processes = options.sbatch_options[:nodes] * options.sbatch_options[:ntasks_per_node]
-    elseif options.mode == :SplitThreads
-        processes = options.sbatch_options[:nodes]
-    end
+function print_julia_command(io, args...)
     julia_path = joinpath(Sys.BINDIR, "julia")
     join(io, [julia_path, args...], " ")
 end
