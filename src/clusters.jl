@@ -26,6 +26,16 @@ function AvonCluster()
     )
 end
 
+function BlytheCluster()
+    ClusterInfo("blythe",
+        Dict{Symbol,Any}(
+            :ntasks_per_node=>168,
+            :mem_per_cpu=>4591,
+            :cpus_per_task=>1
+        )
+    )
+end
+
 function OracCluster()
     ClusterInfo("orac",
         Dict{Symbol,Any}(
@@ -63,6 +73,8 @@ function ClusterInfo()
     if occursin("sulis", machine)
         return SulisCluster()
     elseif occursin("avon", machine)
+        return AvonCluster()
+    elseif occursin("blythe", machine)
         return AvonCluster()
     elseif occursin("orac", machine)
         return OracCluster()
